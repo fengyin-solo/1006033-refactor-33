@@ -1,3 +1,8 @@
+import {
+  APRON_ACTION_TARGETS,
+  APRON_ACTIONS,
+  APRON_STATUSES,
+} from './apron-rules'
 import type { ModuleMeta } from './types'
 
 // 模块元数据由仓库生成时写入：字段、状态、动作、流转目标都在这里，页面不再各自写一遍。
@@ -184,9 +189,9 @@ export const MODULES: ModuleMeta[] = [
     entity: "巡查记录",
     desc: "维护巡查记录，围绕巡查编号、巡查区域、巡查人员、发现问题数做登记、筛选与状态流转。",
     fields: ["巡查编号", "巡查区域", "巡查人员", "发现问题数", "整改单号", "巡查时间", "复查日期", "巡查状态"],
-    statuses: ["待巡查", "巡查中", "待整改", "已复查"],
-    actions: ["开始巡查", "提交整改", "确认复查"],
-    actionTargets: {"开始巡查": "巡查中", "提交整改": "待整改", "确认复查": "已复查"},
+    statuses: [...APRON_STATUSES],
+    actions: [...APRON_ACTIONS],
+    actionTargets: { ...APRON_ACTION_TARGETS },
     metrics: ["今日巡查次数", "巡查中记录", "待整改问题"],
   },
   {

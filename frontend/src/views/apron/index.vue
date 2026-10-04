@@ -47,7 +47,7 @@
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
-              v-for="action in actions"
+              v-for="action in rowActions(row)"
               :key="action"
               class="link"
               type="button"
@@ -55,6 +55,7 @@
             >
               {{ action }}
             </button>
+            <span v-if="!rowActions(row).length" class="muted-text">—</span>
           </td>
         </tr>
         <tr v-if="!rows.length">
@@ -74,18 +75,18 @@
 import { computed, onMounted, ref } from 'vue'
 
 import {
+  apronAvailableActions,
   downloadEntries,
   listEntries,
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { summarize } from '@/data/apron-rules'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('apron')
 const columns = ["巡查编号", "巡查区域", "巡查人员", "发现问题数", "整改单号", "巡查时间", "复查日期", "巡查状态"]
-const actions = ["开始巡查", "提交整改", "确认复查"]
 const statuses = ["待巡查", "巡查中", "待整改", "已复查"]
-const stats = [{"label": "今日巡查次数", "value": 0}, {"label": "巡查中记录", "value": 0}, {"label": "待整改问题", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -98,6 +99,20 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+// 三个统计卡片与动作层、班组待办共用 data/apron-rules.ts 的同一汇总口径。
+const stats = computed(() => {
+  const summary = summarize(rows.value)
+  return [
+    { label: "今日巡查次数", value: summary.todayInspectionCount },
+    { label: "巡查中记录", value: summary.inspectingCount },
+    { label: "待整改问题", value: summary.pendingRectificationCount },
+  ]
+})
+
+// 每行只出现当前状态允许的动作，能不能提交整改由规则模块裁决，页面不另写判断。
+function rowActions(row: EntryRow): string[] {
+  return apronAvailableActions(row)
+}
 
 function resetFilters() {
   filters.value = {}

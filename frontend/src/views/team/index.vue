@@ -18,6 +18,25 @@
       </article>
     </div>
 
+    <section class="todo-block">
+      <h3>待整改问题（来自机坪安全巡查，共 {{ todoRows.length }} 项）</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th v-for="column in todoColumns" :key="column">{{ column }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in todoRows" :key="`todo-${String(row.id)}`">
+            <td v-for="column in todoColumns" :key="column">{{ row[column] ?? '—' }}</td>
+          </tr>
+          <tr v-if="!todoRows.length">
+            <td :colspan="todoColumns.length" class="empty-state">当前没有待整改问题</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <p class="status-legend">
       <span v-for="item in statusSummary" :key="item.status" class="legend-item">
         {{ item.status }}：{{ item.count }}
@@ -76,6 +95,7 @@ import { computed, onMounted, ref } from 'vue'
 import {
   downloadEntries,
   listEntries,
+  listRectificationTodos,
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
@@ -86,6 +106,10 @@ const columns = ["班组编号", "班组名称", "负责区域", "在岗人数",
 const actions = ["确认在岗", "安排轮休", "提交培训"]
 const statuses = ["在岗", "轮休", "培训中", "已解散"]
 const stats = [{"label": "在册班组", "value": 0}, {"label": "在岗班组", "value": 0}, {"label": "轮休班组", "value": 0}]
+
+// 班组待办的「待整改问题」与机坪页面统计、运营概览共用规则模块的同一选择器，不在这里另算。
+const todoColumns = ["巡查编号", "巡查区域", "巡查人员", "发现问题数", "整改单号", "巡查时间", "复查日期"]
+const todoRows = ref<EntryRow[]>([])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -128,6 +152,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    todoRows.value = listRectificationTodos()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '保障班组列表读取失败'
   }
