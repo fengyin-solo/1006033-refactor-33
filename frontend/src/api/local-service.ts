@@ -1,3 +1,10 @@
+import {
+  APRON_MODULE_KEY,
+  SUBMIT_RECTIFICATION_ACTION,
+  apronPendingCount,
+  checkSubmitRectification,
+  rectificationTodos,
+} from '@/data/apron-rules'
 import { MODULE_BY_KEY } from '@/data/modules'
 import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
@@ -40,6 +47,15 @@ export function runAction(key: string, id: number, action: string): ActionResult
     return { ok: false, message: `没有找到编号为 ${id} 的${meta.entity}` }
   }
   const current = String(rows[index].status)
+  // 机坪「提交整改」走统一业务规则（状态前提、整改单号必填、复查日期回填都在这一处裁决），
+  // 门禁不过直接拒绝，状态不推进。
+  if (key === APRON_MODULE_KEY && action === SUBMIT_RECTIFICATION_ACTION) {
+    const verdict = checkSubmitRectification(rows[index])
+    if (!verdict.ok) {
+      return { ok: false, message: verdict.message }
+    }
+    rows[index] = { ...rows[index], 复查日期: verdict.reviewDate }
+  }
   if (current === target) {
     return { ok: false, message: `${meta.entity}已经是「${target}」，不用重复操作` }
   }
@@ -59,6 +75,11 @@ export function runAction(key: string, id: number, action: string): ActionResult
 export function resetModule(key: string): PageResult {
   resetRows(key)
   return listEntries(key)
+}
+
+/** 保障班组待办：待整改问题的唯一查询入口，口径直接来自机坪业务规则。 */
+export function listRectificationTodos() {
+  return rectificationTodos(listRows(APRON_MODULE_KEY))
 }
 
 export function exportEntries(key: string): { filename: string; content: string } {
@@ -88,10 +109,13 @@ export function loadOverview(): OverviewResult {
   const rows = allRows()
   const modules = [...MODULE_BY_KEY.values()].map((meta) => {
     const entries = rows[meta.key] ?? []
+    // 机坪的待处理口径以机坪业务规则为准（已复查才收尾），其他模块仍按记录上的 pending 标志统计。
+    const pending =
+      meta.key === APRON_MODULE_KEY ? apronPendingCount(entries) : entries.filter((row) => row.pending).length
     return {
       name: meta.name,
       created: entries.length,
-      pending: entries.filter((row) => row.pending).length,
+      pending,
       abnormal: entries.filter((row) => row.abnormal).length,
     }
   })

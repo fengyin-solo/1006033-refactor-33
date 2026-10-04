@@ -51,6 +51,8 @@
               :key="action"
               class="link"
               type="button"
+              :disabled="action === submitAction && !canSubmit(row)"
+              :title="action === submitAction && !canSubmit(row) ? submitDisabledHint : ''"
               @click="runAction(action, row)"
             >
               {{ action }}
@@ -79,19 +81,30 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import {
+  SUBMIT_RECTIFICATION_ACTION as submitAction,
+  canSubmitRectification as canSubmit,
+  rectificationIssueCount,
+} from '@/data/apron-rules'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('apron')
 const columns = ["巡查编号", "巡查区域", "巡查人员", "发现问题数", "整改单号", "巡查时间", "复查日期", "巡查状态"]
 const actions = ["开始巡查", "提交整改", "确认复查"]
 const statuses = ["待巡查", "巡查中", "待整改", "已复查"]
-const stats = [{"label": "今日巡查次数", "value": 0}, {"label": "巡查中记录", "value": 0}, {"label": "待整改问题", "value": 0}]
+// 「待整改问题」引用机坪业务规则的统一口径，页面不再自己数；另两项统计保持原占位。
+const submitDisabledHint = '只有「巡查中」的记录能提交整改'
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+const stats = computed(() => [
+  { label: "今日巡查次数", value: 0 },
+  { label: "巡查中记录", value: 0 },
+  { label: "待整改问题", value: rectificationIssueCount(rows.value) },
+])
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,

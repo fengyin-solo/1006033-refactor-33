@@ -63,6 +63,30 @@
       </tbody>
     </table>
 
+    <section class="todo-panel">
+      <h3>待整改问题（机坪安全巡查下发）</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>巡查编号</th><th>巡查区域</th><th>问题数</th><th>整改单号</th><th>巡查时间</th><th>复查日期</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="todo in rectifyTodos" :key="todo.id">
+            <td>{{ todo.inspectCode || '—' }}</td>
+            <td>{{ todo.area || '—' }}</td>
+            <td>{{ todo.issueCount }}</td>
+            <td :class="{ 'error-text': todo.orderMissing }">{{ todo.orderMissing ? '单号待补' : todo.orderNo }}</td>
+            <td>{{ todo.inspectTime || '—' }}</td>
+            <td>{{ todo.reviewDate || '—' }}</td>
+          </tr>
+          <tr v-if="!rectifyTodos.length">
+            <td colspan="6" class="empty-state">暂无待整改问题</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <footer class="page-foot">
       <span>共 {{ total }} 条保障班组记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
@@ -76,9 +100,11 @@ import { computed, onMounted, ref } from 'vue'
 import {
   downloadEntries,
   listEntries,
+  listRectificationTodos,
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import type { RectificationTodo } from '@/data/apron-rules'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('team')
@@ -90,6 +116,8 @@ const stats = [{"label": "在册班组", "value": 0}, {"label": "在岗班组", 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+// 保障班组的待整改问题只从统一查询入口读，口径与机坪页面、运营概览一致。
+const rectifyTodos = ref<RectificationTodo[]>([])
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
@@ -128,6 +156,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    rectifyTodos.value = listRectificationTodos()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '保障班组列表读取失败'
   }

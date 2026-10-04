@@ -738,7 +738,7 @@ export const SEED_ROWS: Record<string, EntryRow[]> = {
     {
       "id": 3,
       "status": "待整改",
-      "pending": false,
+      "pending": true,
       "abnormal": false,
       "巡查编号": "APRO-0003",
       "巡查区域": "机坪安全巡查样例3",
@@ -746,7 +746,7 @@ export const SEED_ROWS: Record<string, EntryRow[]> = {
       "发现问题数": "机坪安全巡查样例3",
       "整改单号": "APRO-0003",
       "巡查时间": "2026-09-03",
-      "复查日期": "2026-09-03",
+      "复查日期": "2026-09-10",
       "巡查状态": "机坪安全巡查样例3"
     }
   ],
